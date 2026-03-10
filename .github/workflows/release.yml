@@ -4,22 +4,18 @@ on:
   push:
     tags:
       - '*-v*'
-  workflow_dispatch:
-    inputs:
-      package_name:
-        description: 'Workspace package name to publish, e.g. pi-tavily-tools'
-        required: true
-        type: string
 
 jobs:
   publish-package:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,22 +25,26 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Resolve package from tag or manual input
+      - name: Verify tag commit is on main
+        run: |
+          git fetch origin main --depth=1
+          if ! git branch -r --contains "$GITHUB_SHA" | grep -q 'origin/main'; then
+            echo "Release tags must point to a commit on main"
+            exit 1
+          fi
+
+      - name: Resolve package from tag
         id: resolve
         env:
-          EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
-          INPUT_PACKAGE_NAME: ${{ inputs.package_name }}
         run: |
           node <<'NODE'
           const fs = require('fs');
           const path = require('path');
 
-          const eventName = process.env.EVENT_NAME;
           const refName = process.env.REF_NAME || '';
-          const inputPackageName = process.env.INPUT_PACKAGE_NAME || '';
           const outputFile = process.env.GITHUB_OUTPUT;
 
           const packagesDir = path.join(process.cwd(), 'packages');
@@ -75,29 +75,19 @@ jobs:
             fail('No workspace packages found under packages/*');
           }
 
-          let packageName;
-          let expectedVersion = null;
-
-          if (eventName === 'push') {
-            const match = refName.match(/^(.*)-v(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)$/);
-            if (!match) {
-              fail(`Tag ${refName} does not match <package-name>-v<version>`);
-            }
-            packageName = match[1];
-            expectedVersion = match[2];
-          } else {
-            packageName = inputPackageName;
-            if (!packageName) {
-              fail('workflow_dispatch requires package_name');
-            }
+          const match = refName.match(/^(.*)-v(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)$/);
+          if (!match) {
+            fail(`Tag ${refName} does not match <package-name>-v<version>`);
           }
 
+          const packageName = match[1];
+          const expectedVersion = match[2];
           const target = packages.find((pkg) => pkg.name === packageName);
           if (!target) {
             fail(`Package ${packageName} not found in workspaces`);
           }
 
-          if (expectedVersion && target.version !== expectedVersion) {
+          if (target.version !== expectedVersion) {
             fail(`Tag version ${expectedVersion} does not match ${target.dir}/package.json version ${target.version}`);
           }
 
@@ -110,10 +100,27 @@ jobs:
           console.log(`package version: ${target.version}`);
           NODE
 
-      - name: Verify package can be packed
-        run: npm pack --workspace "${{ steps.resolve.outputs.package-name }}"
+      - name: Pack package
+        id: pack
+        run: |
+          TARBALL=$(npm pack --workspace "${{ steps.resolve.outputs.package-name }}" | tail -n 1)
+          echo "tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+          echo "tarball path: ${TARBALL}"
 
       - name: Publish package to npm
         run: npm publish --workspace "${{ steps.resolve.outputs.package-name }}" --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+          PACKAGE_NAME: ${{ steps.resolve.outputs.package-name }}
+          PACKAGE_VERSION: ${{ steps.resolve.outputs.package-version }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          gh release create "$TAG_NAME" \
+            "$TARBALL" \
+            --title "$PACKAGE_NAME v$PACKAGE_VERSION" \
+            --generate-notes

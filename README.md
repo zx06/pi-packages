@@ -52,9 +52,13 @@ git push origin pi-tavily-tools-v0.1.0
 
 The release workflow will:
 
+- only run for package release tags
+- require the tag commit to be on `main`
 - resolve the workspace package from the tag
 - verify the tag version matches that package's `package.json`
 - publish only that package to npm
+- create a GitHub Release with generated notes
+- attach the packed `npm pack` tarball to the GitHub Release
 
 ## Install locally with pi
 
