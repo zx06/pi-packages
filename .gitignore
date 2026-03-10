@@ -41,6 +41,9 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Repo-local package manager config
+.npmrc
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
@@ -137,3 +140,9 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
