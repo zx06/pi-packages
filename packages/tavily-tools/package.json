@@ -1,6 +1,6 @@
 {
   "name": "pi-tavily-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tavily tools and status panel for pi",
   "license": "MIT",
   "type": "module",

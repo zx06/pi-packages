@@ -28,6 +28,7 @@ Before committing, run the same basic checks as CI when relevant:
 
 ```bash
 npm run list
+npm run test:tavily-tools
 npm run pack:workspace -- --name=<package-name>
 ```
 

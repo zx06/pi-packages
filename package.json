@@ -8,8 +8,12 @@
     "list": "npm query .workspace",
     "pack:tavily-tools": "npm pack --workspace pi-tavily-tools",
     "publish:tavily-tools": "npm publish --workspace pi-tavily-tools --access public",
+    "test:tavily-tools": "tsx --test packages/tavily-tools/test/**/*.test.ts",
     "pack:workspace": "node scripts/workspace-run.mjs pack",
     "publish:workspace": "node scripts/workspace-run.mjs publish",
     "tag:workspace": "node scripts/tag-workspace.mjs"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
   }
 }
