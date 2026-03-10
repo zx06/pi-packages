@@ -1,0 +1,15 @@
+{
+  "name": "pi-packages",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "list": "npm query .workspace",
+    "pack:tavily-tools": "npm pack --workspace pi-tavily-tools",
+    "publish:tavily-tools": "npm publish --workspace pi-tavily-tools --access public",
+    "pack:workspace": "node scripts/workspace-run.mjs pack",
+    "publish:workspace": "node scripts/workspace-run.mjs publish",
+    "tag:workspace": "node scripts/tag-workspace.mjs"
+  }
+}

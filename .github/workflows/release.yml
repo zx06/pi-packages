@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*-v*'
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: 'Workspace package name to publish, e.g. pi-tavily-tools'
+        required: true
+        type: string
+
+jobs:
+  publish-package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Resolve package from tag or manual input
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_PACKAGE_NAME: ${{ inputs.package_name }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const eventName = process.env.EVENT_NAME;
+          const refName = process.env.REF_NAME || '';
+          const inputPackageName = process.env.INPUT_PACKAGE_NAME || '';
+          const outputFile = process.env.GITHUB_OUTPUT;
+
+          const packagesDir = path.join(process.cwd(), 'packages');
+          const packageDirs = fs.existsSync(packagesDir)
+            ? fs.readdirSync(packagesDir, { withFileTypes: true }).filter((entry) => entry.isDirectory())
+            : [];
+
+          const packages = packageDirs
+            .map((entry) => {
+              const dir = path.join('packages', entry.name);
+              const packageJsonPath = path.join(dir, 'package.json');
+              if (!fs.existsSync(packageJsonPath)) return null;
+              const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+              return {
+                name: pkg.name,
+                version: pkg.version,
+                dir,
+              };
+            })
+            .filter(Boolean);
+
+          const fail = (message) => {
+            console.error(message);
+            process.exit(1);
+          };
+
+          if (packages.length === 0) {
+            fail('No workspace packages found under packages/*');
+          }
+
+          let packageName;
+          let expectedVersion = null;
+
+          if (eventName === 'push') {
+            const match = refName.match(/^(.*)-v(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)$/);
+            if (!match) {
+              fail(`Tag ${refName} does not match <package-name>-v<version>`);
+            }
+            packageName = match[1];
+            expectedVersion = match[2];
+          } else {
+            packageName = inputPackageName;
+            if (!packageName) {
+              fail('workflow_dispatch requires package_name');
+            }
+          }
+
+          const target = packages.find((pkg) => pkg.name === packageName);
+          if (!target) {
+            fail(`Package ${packageName} not found in workspaces`);
+          }
+
+          if (expectedVersion && target.version !== expectedVersion) {
+            fail(`Tag version ${expectedVersion} does not match ${target.dir}/package.json version ${target.version}`);
+          }
+
+          fs.appendFileSync(outputFile, `package-name=${target.name}\n`);
+          fs.appendFileSync(outputFile, `package-dir=${target.dir}\n`);
+          fs.appendFileSync(outputFile, `package-version=${target.version}\n`);
+
+          console.log(`package name: ${target.name}`);
+          console.log(`package dir: ${target.dir}`);
+          console.log(`package version: ${target.version}`);
+          NODE
+
+      - name: Verify package can be packed
+        run: npm pack --workspace "${{ steps.resolve.outputs.package-name }}"
+
+      - name: Publish package to npm
+        run: npm publish --workspace "${{ steps.resolve.outputs.package-name }}" --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
