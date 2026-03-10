@@ -56,6 +56,7 @@ The release workflow will:
 - require the tag commit to be on `main`
 - resolve the workspace package from the tag
 - verify the tag version matches that package's `package.json`
+- fail early if that package version already exists on npm
 - publish only that package to npm
 - create a GitHub Release with generated notes
 - attach the packed `npm pack` tarball to the GitHub Release

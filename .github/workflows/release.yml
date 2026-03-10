@@ -100,6 +100,17 @@ jobs:
           console.log(`package version: ${target.version}`);
           NODE
 
+      - name: Verify package version does not already exist on npm
+        env:
+          PACKAGE_NAME: ${{ steps.resolve.outputs.package-name }}
+          PACKAGE_VERSION: ${{ steps.resolve.outputs.package-version }}
+        run: |
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version >/dev/null 2>&1; then
+            echo "Version already exists on npm: $PACKAGE_NAME@$PACKAGE_VERSION"
+            exit 1
+          fi
+          echo "Version is not published yet: $PACKAGE_NAME@$PACKAGE_VERSION"
+
       - name: Pack package
         id: pack
         run: |
