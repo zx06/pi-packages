@@ -63,6 +63,8 @@ async function showStatusPanel(ctx: any, details: {
 }
 
 export async function showStatus(_pi: ExtensionAPI, ctx: any): Promise<void> {
+	// Wait for agent to finish current work so we can render the UI
+	await ctx.waitForIdle();
 	const apiKeyInfo = getApiKeyInfo();
 	const sessionStats = extractSessionUsageStats(ctx);
 
