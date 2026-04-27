@@ -3,8 +3,8 @@
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
-import type { SkillIndex, SkillEntry, SkillFile } from "./types.ts";
-import { GitHubClient, deriveSkillName } from "./github.js";
+import type { SkillIndex, SkillEntry, SkillFile } from "./types";
+import { GitHubClient, deriveSkillName } from "./github";
 
 const INDEX_FILENAME = "skill-sync-index.json";
 
