@@ -14,6 +14,8 @@
     "tag:workspace": "node scripts/tag-workspace.mjs"
   },
   "devDependencies": {
-    "tsx": "^4.21.0"
+    "protobufjs": "^8.0.1",
+    "tsx": "^4.21.0",
+    "uuid": "^14.0.0"
   }
 }
