@@ -35,8 +35,6 @@ export interface SkillSyncSettings {
     githubToken?: string;
     indexGistId?: string;
     autoSync?: boolean;
-    syncInterval?: number;
-    conflictStrategy?: "agent" | "local" | "remote";
   };
 }
 
@@ -49,26 +47,8 @@ export interface SkillFile {
 export interface SyncResult {
   success: boolean;
   name: string;
-  action: "downloaded" | "uploaded" | "skipped" | "conflict";
+  action: "downloaded" | "uploaded" | "skipped";
   message?: string;
-}
-
-export interface ConflictInfo {
-  name: string;
-  localPath: string;
-  gistId: string;
-  localModified: string;
-  remoteModified: string;
-  localFiles: SkillFile[];
-  remoteFiles: SkillFile[];
-}
-
-export interface ConfigOptions {
-  githubToken?: string;
-  indexGistId?: string;
-  autoSync?: boolean;
-  syncInterval?: number;
-  conflictStrategy?: "agent" | "local" | "remote";
 }
 
 // GitHub API Types

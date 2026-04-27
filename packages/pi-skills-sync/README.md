@@ -22,19 +22,22 @@ Manage your pi skills via GitHub Gists. Sync across devices, import local skills
 ## Quick Start
 
 ```bash
-# 1. Setup (first time)
+# 1. Install
+pi install npm:pi-skills-sync
+
+# 2. Setup (first time)
 /ss:setup
 
-# 2. Add a skill from Gist
+# 3. Add a skill from Gist
 /ss:add https://gist.github.com/yourname/abc123
 
-# 3. Import local skill
+# 4. Import local skill
 /ss:import my-local-skill
 
-# 4. Sync
+# 5. Sync
 /ss:sync
 
-# 5. List all
+# 6. List all
 /ss:list
 ```
 
@@ -78,7 +81,7 @@ Save the index Gist ID somewhere safe - you'll need it to restore on new machine
 
 ```bash
 # Install plugin
-npm install -g pi-skills-sync
+pi install npm:pi-skills-sync
 
 # Setup
 /ss:setup

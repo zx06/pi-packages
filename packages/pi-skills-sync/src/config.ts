@@ -78,8 +78,6 @@ export class ConfigManager {
       githubToken: undefined,
       indexGistId: undefined,
       autoSync: undefined,
-      syncInterval: undefined,
-      conflictStrategy: undefined,
     });
   }
 }

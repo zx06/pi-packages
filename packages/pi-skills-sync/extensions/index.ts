@@ -21,7 +21,7 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
       client = new GitHubClient(config.skillSync.githubToken);
       if (!config.skillSync?.indexGistId) throw new Error("Run /ss:setup first");
       index = new IndexManager(client, config.skillSync.indexGistId);
-      syncEngine = new SyncEngine(client, storage, index, config.skillSync.conflictStrategy || "agent");
+      syncEngine = new SyncEngine(client, storage, index);
     }
     return client;
   }
@@ -77,7 +77,7 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
       if (!indexGistId) { ctx.ui.notify("⚠️ Index Gist required", "warning"); return; }
 
       const autoSync = await ctx.ui.confirm("Auto Sync", "Sync on startup?");
-      await ConfigManager.save({ githubToken: token, indexGistId, autoSync: Boolean(autoSync), conflictStrategy: "agent" });
+      await ConfigManager.save({ githubToken: token, indexGistId, autoSync: Boolean(autoSync) });
       client = index = syncEngine = null;
       ctx.ui.notify("✅ Saved!", "info");
     },
@@ -210,7 +210,7 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
       if (config.skillSync?.autoSync && config.skillSync?.githubToken && config.skillSync?.indexGistId) {
         const gh = new GitHubClient(config.skillSync.githubToken);
         const idx = new IndexManager(gh, config.skillSync.indexGistId);
-        new SyncEngine(gh, storage, idx, config.skillSync.conflictStrategy || "agent").syncAll().catch(() => {});
+        new SyncEngine(gh, storage, idx).syncAll().catch(() => {});
       }
     } catch { /* ignore */ }
   });
