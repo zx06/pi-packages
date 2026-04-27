@@ -180,10 +180,15 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
       const { homedir } = await import("os");
       const localPath = `${homedir()}/.pi/agent/skills/${name}`;
       
-      if (!(await stat(localPath).catch(() => null))?.isDirectory()) {
-        ctx.ui.notify(`❌ Not found: ~/.pi/agent/skills/${name}`, "error");
+      // Check if already exists
+      const existing = await storage.getSource(name);
+      if (existing) {
+        ctx.ui.notify(`⚠️ Already exists: ${name} (https://gist.github.com/${existing.gistId})`, "warning");
         return;
       }
+      
+      const pathStat = await stat(localPath).catch(() => null);
+      if (!pathStat?.isDirectory()) {
       
       const files: Record<string, { content: string }> = {};
       async function walk(dir: string, base: string) {
