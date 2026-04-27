@@ -1,0 +1,29 @@
+{
+  "name": "pi-skills-sync",
+  "version": "0.2.1",
+  "description": "Manage pi skills via GitHub Gists",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "skills",
+    "sync",
+    "gist"
+  ],
+  "files": [
+    "extensions",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.70.2",
+    "@mariozechner/pi-tui": "^0.70.2"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  }
+}
