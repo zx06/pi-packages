@@ -242,6 +242,7 @@ export function buildStatusPanelLines(details: {
 	configured: boolean;
 	apiKeySource?: string;
 	apiKeyMasked?: string;
+	usageLoading: boolean;
 	usage?: TavilyUsageResponse;
 	usageError?: string;
 	sessionStats: SessionUsageStats;
@@ -267,6 +268,10 @@ export function buildStatusPanelLines(details: {
 	if (!details.configured) {
 		lines.push("", theme.fg("warning", "Configure an API key, run /reload, then run /tavily:status again."));
 		if (expanded && details.guidance) lines.push("", theme.fg("dim", details.guidance));
+	} else if (details.usageLoading) {
+		// Panel renders immediately — usage data loads in background
+		lines.push("", theme.bold("Usage"));
+		lines.push(`${theme.fg("accent", "Loading")} ${theme.fg("muted", "Fetching usage data from Tavily API…")}`);
 	} else {
 		lines.push("", theme.bold("Usage"));
 		lines.push(`${theme.fg("accent", "Key ")} ${colorForPercent(theme, keyPercent, renderBar(keyPercent, expanded ? 24 : 18))} ${theme.fg("muted", formatUsageSummary(keyUsage))}`);
