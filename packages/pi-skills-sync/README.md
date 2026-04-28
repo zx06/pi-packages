@@ -65,7 +65,7 @@ pi install npm:pi-skills-sync
 ### Importing Local Skill
 ```
 /ss:import my-skill
-→ Reads ~/.pi/agent/skills/my-skill
+→ Reads ~/.pi/agent/skills/my-skill (supports subdirectories)
 → Creates new private Gist
 → Adds to management list
 ```
@@ -73,10 +73,18 @@ pi install npm:pi-skills-sync
 ### Syncing
 - `/ss:sync` - pull all changes from Gists
 - `/ss:sync my-skill` - pull specific skill
+
+### Pushing
 - `/ss:push my-skill` - push local edits to Gist
 
 ### Removing
-- `/ss:remove my-skill` → interactive: keep local? delete Gist?
+```
+/ss:remove my-skill
+→ Shows summary (Gist URL, local path, last sync)
+→ Confirm removal
+→ Delete Gist on GitHub? (Yes/No)
+→ Keep local files? (Yes/No)
+```
 
 ## Index Gist
 

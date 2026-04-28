@@ -75,6 +75,76 @@ Current CI behavior:
 
 When changing CI, keep it compatible with the current npm workspace layout.
 
+## AI Development Best Practices
+
+When AI agents (or any developer) work on this repo, follow these guidelines.
+
+### Documentation First
+
+Every package should have a **SPEC.md** that is the single source of truth. Before writing or changing code:
+
+1. **Read the existing SPEC.md** to understand the package's design intent
+2. **Update SPEC.md first** when adding features, commands, or changing behavior
+3. **Update README.md** if the change is user-facing (new commands, changed workflow)
+4. Keep SPEC and README in sync — they serve different audiences (design vs. usage)
+
+### Type-First Design
+
+Define types and interfaces in `src/types.ts` before implementing logic:
+
+- New data structures → add to `types.ts` first
+- New API parameters → define the interface before the implementation
+- Keep types narrow and precise (avoid `any`, prefer `unknown` with type guards)
+
+### Code Quality Rules
+
+- **No duplicate code**: Extract shared utilities into `src/utils.ts` or a dedicated module
+- **Consistent imports**: All source files within a package should use the same import style
+  - With `moduleResolution: "bundler"`, use extensionless imports (`"./types"`)
+  - Use `import type` for type-only imports to avoid runtime overhead
+- **No dead code**: Remove unused functions, methods, imports, and variables
+- **No `require()` in ESM**: Use `import` statements; `"type": "module"` is set at package level
+- **Handle errors**: Don't silently swallow exceptions; at minimum log them or propagate with context
+
+### Incremental Changes
+
+- Make small, focused commits with descriptive messages following [Conventional Commits](https://www.conventionalcommits.org/)
+- Each commit should address one logical change
+- Commit messages should explain _what_ and _why_, not just _how_
+
+### Validation Before Commit
+
+```bash
+# Always validate before committing:
+npm run pack:workspace -- --name=<package-name>
+
+# Verify syntax:
+node --check packages/<dir>/src/*.ts packages/<dir>/extensions/*.ts
+
+# Check final diff:
+git diff --stat
+```
+
+### Code Review Checklist
+
+When reviewing AI-generated (or any) changes, verify:
+
+- [ ] SPEC.md and README.md are updated if behavior changed
+- [ ] Types are defined in `types.ts` before use
+- [ ] No duplicate code across files (check for copy-paste)
+- [ ] Import paths are consistent with the rest of the package
+- [ ] No `require()` calls in ESM packages
+- [ ] Error paths are handled (not silently ignored)
+- [ ] `npm run pack:workspace` passes
+- [ ] Version is bumped according to semver
+- [ ] Commit message follows Conventional Commits
+
+### Encoding / Data Safety
+
+- When encoding data for external APIs (like GitHub Gist filenames), use standard, reversible schemes (percent-encoding, base64) rather than ad-hoc replacements
+- Collision-prone separators (like `__` for paths) must be encoded in a way that survives round-trips
+- Document encoding choices with inline comments explaining _why_ they were chosen
+
 ## Release rules
 
 `release.yml` is tag-driven.
