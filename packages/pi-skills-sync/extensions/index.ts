@@ -7,6 +7,7 @@ import { StorageManager } from "../src/storage";
 import { IndexManager } from "../src/index-manager";
 import { SyncEngine } from "../src/sync";
 import { ConfigManager, type SkillSyncSettings } from "../src/config";
+import { encodePath } from "../src/encoding";
 
 export default function piSkillsSyncExtension(pi: ExtensionAPI) {
   const storage = new StorageManager();
@@ -122,6 +123,32 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
         const ok = results.filter(r => r.success).length;
         ctx.ui.notify(`${ok}/${results.length} synced`, "info");
       }
+    },
+  });
+
+  // /ss:push - 推送本地修改到 Gist
+  pi.registerCommand("ss:push", {
+    description: "Push local changes to Gist",
+    getArgumentCompletions: async () => {
+      try { return (await storage.listSources()).map(s => ({ value: s.name, label: s.name })); } catch { return null; }
+    },
+    handler: async (args: string, ctx) => {
+      await ensureClient();
+      const name = args.trim();
+      if (!name) { ctx.ui.notify("Usage: /ss:push <skill-name>", "info"); return; }
+
+      const source = await storage.getSource(name);
+      if (!source) {
+        ctx.ui.notify(`❌ Skill "${name}" not in sync list`, "error");
+        return;
+      }
+
+      ctx.ui.notify(`🔄 Pushing "${name}" to Gist...`, "info");
+      const result = await syncEngine!.pushSkill(name);
+      ctx.ui.notify(
+        result.success ? `✅ Pushed ${name}` : `❌ ${result.message}`,
+        result.success ? "info" : "error"
+      );
     },
   });
 
@@ -247,8 +274,8 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
           if ((await stat(p)).isDirectory()) await walk(p, base);
           else {
             const relativePath = p.slice(base.length + 1);
-            // GitHub Gist API may reject filenames with '/' - replace with '__'
-            const safeFilename = relativePath.replace(/\//g, '__');
+            // GitHub Gist API rejects filenames with '/' (422) — encode for safe storage
+            const safeFilename = encodePath(relativePath);
             files[safeFilename] = { content: await readFile(p, "utf-8") };
           }
         }

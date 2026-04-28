@@ -1,5 +1,6 @@
 // GitHub Gist API Client
 
+import { exec } from "node:child_process";
 import type { Gist, GistFile, CreateGistParams, GistFileUpdate } from "./types";
 
 export class GitHubClient {
@@ -166,12 +167,8 @@ export function openTokenPage(): void {
 }
 
 function openUrl(url: string): void {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { exec } = require("child_process");
-    const openCmd = process.platform === "darwin" ? "open" : "xdg-open";
-    exec(`${openCmd} "${url}"`);
-  } catch {
-    // If fails, don't crash - caller will handle
-  }
+  const openCmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+  exec(`${openCmd} "${url}"`, (err) => {
+    if (err) console.error(`Failed to open URL: ${err.message}`);
+  });
 }

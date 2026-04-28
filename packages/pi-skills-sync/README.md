@@ -16,7 +16,9 @@ Manage your pi skills via GitHub Gists. Sync across devices, import local skills
 | `/ss:setup` | Interactive setup (token + index Gist) |
 | `/ss:add` | Add skill from Gist URL |
 | `/ss:import` | Import local skill from ~/.pi/agent/skills |
-| `/ss:sync` | Sync all skills or a specific one |
+| `/ss:sync` | Sync all skills or a specific one (pull from Gist) |
+| `/ss:push` | Push local changes of a skill to its Gist |
+| `/ss:remove` | Remove skill from sync list |
 | `/ss:list` | List skills + config status |
 
 ## Quick Start
@@ -34,10 +36,14 @@ pi install npm:pi-skills-sync
 # 4. Import local skill
 /ss:import my-local-skill
 
-# 5. Sync
+# 5. Sync (pull) or Push
 /ss:sync
+/ss:push my-local-skill
 
-# 6. List all
+# 6. Remove a skill
+/ss:remove my-local-skill
+
+# 7. List all
 /ss:list
 ```
 
@@ -65,8 +71,12 @@ pi install npm:pi-skills-sync
 ```
 
 ### Syncing
-- `/ss:sync` - sync all
-- `/ss:sync my-skill` - sync specific
+- `/ss:sync` - pull all changes from Gists
+- `/ss:sync my-skill` - pull specific skill
+- `/ss:push my-skill` - push local edits to Gist
+
+### Removing
+- `/ss:remove my-skill` → interactive: keep local? delete Gist?
 
 ## Index Gist
 
@@ -108,6 +118,10 @@ Stored in `~/.pi/agent/settings.json`:
 ## Auto-Sync
 
 When enabled, skills sync on every pi startup. Can be disabled during setup.
+
+## Security
+
+GitHub token is stored in plaintext at `~/.pi/agent/settings.json`. Use a fine-grained token scoped to `gist` only (no repo access).
 
 ## License
 

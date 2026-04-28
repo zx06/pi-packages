@@ -4,6 +4,7 @@ import type { SyncResult, SkillFile, SkillSource } from "./types";
 import { GitHubClient, deriveSkillName } from "./github";
 import { StorageManager } from "./storage";
 import { IndexManager, resolveSkillPath } from "./index-manager";
+import { encodePath, decodePath } from "./encoding";
 
 export class SyncEngine {
   private client: GitHubClient;
@@ -67,8 +68,8 @@ export class SyncEngine {
       const localFiles = await this.storage.getLocalSkillFiles(source.localPath);
       const files: Record<string, { content: string }> = {};
       for (const f of localFiles) {
-        // Replace '/' with '__' for GitHub Gist API compatibility
-        const safeFilename = f.path.replace(/\//g, '__');
+        // Encode '/' for GitHub Gist API compatibility
+        const safeFilename = encodePath(f.path);
         files[safeFilename] = { content: f.content };
       }
 
@@ -155,8 +156,8 @@ export class SyncEngine {
     const { join, dirname } = await import("path");
 
     for (const file of files) {
-      // Restore '/' from '__' to reconstruct directory structure
-      const reconstructedFilename = file.filename.replace(/__/g, '/');
+      // Restore original path from encoded filename
+      const reconstructedFilename = decodePath(file.filename);
       const filePath = join(localPath, reconstructedFilename);
       await mkdir(dirname(filePath), { recursive: true });
       await writeFile(filePath, file.content, "utf-8");

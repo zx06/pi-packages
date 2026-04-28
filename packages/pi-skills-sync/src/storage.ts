@@ -1,9 +1,9 @@
 // Local Storage Management
 
-import { readFile, writeFile, mkdir, access, rm, readdir, stat } from "fs/promises";
-import { join, resolve } from "path";
-import { homedir } from "os";
-import type { LocalStorage, SkillSource } from "./types.js";
+import { readFile, writeFile, mkdir, rm, readdir } from "fs/promises";
+import { join } from "path";
+import type { LocalStorage, SkillSource } from "./types";
+import { resolvePath, isFileNotFound } from "./utils";
 
 const DEFAULT_STORAGE_PATH = "~/.pi/agent/skill-sync.json";
 
@@ -72,7 +72,6 @@ export class StorageManager {
     try {
       await rm(localPath, { recursive: true, force: true });
     } catch (error) {
-      // Ignore errors during deletion
       console.error(`Failed to delete local skill at ${localPath}:`, error);
     }
   }
@@ -101,19 +100,3 @@ export class StorageManager {
     }
   }
 }
-
-function resolvePath(path: string): string {
-  if (path.startsWith("~/")) {
-    return join(homedir(), path.slice(2));
-  }
-  return resolve(path);
-}
-
-function isFileNotFound(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    ("code" in error ? error.code === "ENOENT" : error.message.includes("ENOENT"))
-  );
-}
-
-export { resolvePath };
