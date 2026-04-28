@@ -66,7 +66,11 @@ export class SyncEngine {
     try {
       const localFiles = await this.storage.getLocalSkillFiles(source.localPath);
       const files: Record<string, { content: string }> = {};
-      for (const f of localFiles) files[f.path] = { content: f.content };
+      for (const f of localFiles) {
+        // Replace '/' with '__' for GitHub Gist API compatibility
+        const safeFilename = f.path.replace(/\//g, '__');
+        files[safeFilename] = { content: f.content };
+      }
 
       await this.client.updateGist(source.gistId, files);
 
@@ -126,13 +130,14 @@ export class SyncEngine {
   }
 
   async removeSkill(name: string, keepLocal = false): Promise<void> {
+    // Get source BEFORE removing it, so we know the localPath
+    const source = await this.storage.getSource(name);
+
     await this.storage.removeSource(name);
     await this.index.removeSkill(name);
-    if (!keepLocal) {
-      const source = await this.storage.getSource(name);
-      if (source) {
-        await this.storage.deleteLocalSkill(source.localPath);
-      }
+
+    if (!keepLocal && source) {
+      await this.storage.deleteLocalSkill(source.localPath);
     }
   }
 
@@ -150,7 +155,9 @@ export class SyncEngine {
     const { join, dirname } = await import("path");
 
     for (const file of files) {
-      const filePath = join(localPath, file.filename);
+      // Restore '/' from '__' to reconstruct directory structure
+      const reconstructedFilename = file.filename.replace(/__/g, '/');
+      const filePath = join(localPath, reconstructedFilename);
       await mkdir(dirname(filePath), { recursive: true });
       await writeFile(filePath, file.content, "utf-8");
     }

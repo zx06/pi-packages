@@ -155,6 +155,53 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
     },
   });
 
+  // /ss:remove - 从列表移除 skill
+  pi.registerCommand("ss:remove", {
+    description: "Remove skill from sync list",
+    getArgumentCompletions: async () => {
+      try { return (await storage.listSources()).map(s => ({ value: s.name, label: s.name })); } catch { return null; }
+    },
+    handler: async (args: string, ctx) => {
+      await ensureClient();
+      const name = args.trim();
+      if (!name) { ctx.ui.notify("Usage: /ss:remove <skill-name>", "info"); return; }
+
+      const source = await storage.getSource(name);
+      if (!source) {
+        ctx.ui.notify(`❌ Skill "${name}" not in sync list`, "error");
+        return;
+      }
+
+      // Show summary and confirm
+      ctx.ui.notify([
+        `Remove "${name}"?`,
+        `  Gist: https://gist.github.com/${source.gistId}`,
+        `  Local: ${source.localPath}`,
+        `  Synced: ${source.lastSync ?? "never"}`,
+      ].join("\n"), "info");
+
+      if (!await ctx.ui.confirm("Remove", `Remove ${name} from sync list?`)) return;
+
+      const deleteGist = await ctx.ui.confirm("Delete Gist", `🗑️  Also delete the Gist on GitHub?`);
+      const keepLocal = await ctx.ui.confirm("Keep Local", "💾 Keep local skill files?");
+
+      // Delete Gist on GitHub if requested
+      if (deleteGist) {
+        try {
+          const gh = await ensureClient();
+          await gh.deleteGist(source.gistId);
+          ctx.ui.notify(`🗑️  Deleted Gist https://gist.github.com/${source.gistId}`, "info");
+        } catch (e) {
+          ctx.ui.notify(`⚠️  Could not delete Gist: ${e instanceof Error ? e.message : String(e)}`, "warning");
+        }
+      }
+
+      // Remove from sync list (and optionally delete local files)
+      await syncEngine!.removeSkill(name, keepLocal);
+      ctx.ui.notify(`✅ Removed "${name}" from sync list`, "info");
+    },
+  });
+
   // /ss:import - 导入本地 skill
   pi.registerCommand("ss:import", {
     description: "Import local skill",
@@ -189,22 +236,34 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
       
       const pathStat = await stat(localPath).catch(() => null);
       if (!pathStat?.isDirectory()) {
+        ctx.ui.notify(`❌ Not found: ~/.pi/agent/skills/${name}`, "error");
+        return;
+      }
       
       const files: Record<string, { content: string }> = {};
       async function walk(dir: string, base: string) {
         for (const e of await readdir(dir)) {
           const p = `${dir}/${e}`;
           if ((await stat(p)).isDirectory()) await walk(p, base);
-          else files[p.slice(base.length + 1)] = { content: await readFile(p, "utf-8") };
+          else {
+            const relativePath = p.slice(base.length + 1);
+            // GitHub Gist API may reject filenames with '/' - replace with '__'
+            const safeFilename = relativePath.replace(/\//g, '__');
+            files[safeFilename] = { content: await readFile(p, "utf-8") };
+          }
         }
       }
       await walk(localPath, localPath);
 
       ctx.ui.notify("🔄 Creating Gist...", "info");
       const gh = await ensureClient();
-      const gist = await gh.createGist({ description: `skill-${name}`, public: false, files });
-      await syncEngine!.addSkillFromGist(gist.id, name);
-      ctx.ui.notify(`✅ Imported! https://gist.github.com/${gist.id}`, "info");
+      try {
+        const gist = await gh.createGist({ description: `skill-${name}`, public: false, files });
+        await syncEngine!.addSkillFromGist(gist.id, name);
+        ctx.ui.notify(`✅ Imported! https://gist.github.com/${gist.id}`, "info");
+      } catch (error) {
+        ctx.ui.notify(`❌ Import failed: ${error instanceof Error ? error.message : String(error)}`, "error");
+      }
     },
   });
 
