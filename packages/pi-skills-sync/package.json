@@ -2,6 +2,15 @@
   "name": "pi-skills-sync",
   "version": "0.3.1",
   "description": "Manage pi skills via GitHub Gists",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zx06/pi-packages.git",
+    "directory": "packages/pi-skills-sync"
+  },
+  "homepage": "https://github.com/zx06/pi-packages/tree/main/packages/pi-skills-sync#readme",
+  "bugs": {
+    "url": "https://github.com/zx06/pi-packages/issues"
+  },
   "license": "MIT",
   "type": "module",
   "keywords": [

@@ -2,6 +2,15 @@
   "name": "pi-plan",
   "version": "0.1.0",
   "description": "Plan mode for pi — read-only exploration with plan-then-execute workflow",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zx06/pi-packages.git",
+    "directory": "packages/plan"
+  },
+  "homepage": "https://github.com/zx06/pi-packages/tree/main/packages/plan#readme",
+  "bugs": {
+    "url": "https://github.com/zx06/pi-packages/issues"
+  },
   "license": "MIT",
   "type": "module",
   "keywords": [
