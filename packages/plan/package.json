@@ -1,6 +1,6 @@
 {
   "name": "pi-plan",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Plan mode for pi — read-only exploration with plan-then-execute workflow",
   "repository": {
     "type": "git",

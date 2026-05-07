@@ -1,6 +1,6 @@
 {
   "name": "pi-tavily-tools",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Tavily tools and status panel for pi",
   "repository": {
     "type": "git",

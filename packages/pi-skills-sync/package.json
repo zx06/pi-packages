@@ -1,6 +1,6 @@
 {
   "name": "pi-skills-sync",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Manage pi skills via GitHub Gists",
   "repository": {
     "type": "git",
