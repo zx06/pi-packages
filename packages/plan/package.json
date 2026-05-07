@@ -1,0 +1,31 @@
+{
+  "name": "pi-plan",
+  "version": "0.1.0",
+  "description": "Plan mode for pi — read-only exploration with plan-then-execute workflow",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "plan",
+    "planning",
+    "execute",
+    "read-only",
+    "agent"
+  ],
+  "files": [
+    "extensions",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@mariozechner/pi-ai": "^0.70.2",
+    "@mariozechner/pi-coding-agent": "^0.70.2"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/plan"
+    ]
+  }
+}
