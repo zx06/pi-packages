@@ -1,0 +1,26 @@
+name: NPM Token Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Inspect token safely
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          node -e '
+            const t = process.env.NODE_AUTH_TOKEN || "";
+            console.log("length:", t.length);
+            console.log("trimmedLength:", t.trim().length);
+            console.log("hasWhitespace:", t !== t.trim());
+            console.log("prefix:", JSON.stringify(t.slice(0, 4)));
+          '
+          npm whoami
