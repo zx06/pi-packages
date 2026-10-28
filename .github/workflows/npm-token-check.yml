@@ -22,5 +22,7 @@ jobs:
             console.log("trimmedLength:", t.trim().length);
             console.log("hasWhitespace:", t !== t.trim());
             console.log("prefix:", JSON.stringify(t.slice(0, 4)));
+            console.log("last4:", JSON.stringify(t.slice(-4)));
           '
           npm whoami
+          npm token list --json || true
