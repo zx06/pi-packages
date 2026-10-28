@@ -29,7 +29,7 @@ jobs:
 
       - name: Verify tag commit is on main
         run: |
-          git fetch origin main --depth=1
+          git fetch origin main
           if ! git branch -r --contains "$GITHUB_SHA" | grep -q 'origin/main'; then
             echo "Release tags must point to a commit on main"
             exit 1
