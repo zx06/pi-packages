@@ -1,19 +1,41 @@
 // pi-skills-sync Extension
 // Sync pi skills from GitHub Gists
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { GitHubClient, parseGistUrl, openTokenPage } from "../src/github";
 import { StorageManager } from "../src/storage";
 import { IndexManager } from "../src/index-manager";
 import { SyncEngine } from "../src/sync";
 import { ConfigManager, type SkillSyncSettings } from "../src/config";
 import { encodePath } from "../src/encoding";
+import type { SkillListDetails, SkillSource } from "../src/types";
+import { createSkillAutocompleteProvider } from "./autocomplete";
+import { renderSkillListEntry } from "./render";
 
 export default function piSkillsSyncExtension(pi: ExtensionAPI) {
   const storage = new StorageManager();
   let client: GitHubClient | null = null;
   let index: IndexManager | null = null;
   let syncEngine: SyncEngine | null = null;
+  let sourcesCache: SkillSource[] | undefined;
+
+  async function getSources(): Promise<SkillSource[]> {
+    if (!sourcesCache) {
+      sourcesCache = await storage.listSources().catch((error) => {
+        console.error("pi-skills-sync: failed to load sources for autocomplete:", error);
+        return [];
+      });
+    }
+    return sourcesCache;
+  }
+
+  function invalidateSources(): void {
+    sourcesCache = undefined;
+  }
+
+  pi.registerEntryRenderer<SkillListDetails>("ss:list", (entry, options, theme) =>
+    renderSkillListEntry(entry.data, options, theme)
+  );
 
   async function ensureClient(): Promise<GitHubClient> {
     if (!client) {
@@ -101,8 +123,14 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
       if (!url) { ctx.ui.notify("Usage: /ss:add <gist-url>", "info"); return; }
       const gistId = parseGistUrl(url);
       if (!gistId) { ctx.ui.notify("❌ Invalid Gist URL", "error"); return; }
-      const result = await syncEngine!.addSkillFromGist(gistId);
-      ctx.ui.notify(result.success ? `✅ Added: https://gist.github.com/${gistId}` : `❌ ${result.message}`, result.success ? "info" : "error");
+      ctx.ui.setStatus("ss", ctx.ui.theme.fg("accent", "🔄 adding"));
+      try {
+        const result = await syncEngine!.addSkillFromGist(gistId);
+        invalidateSources();
+        ctx.ui.notify(result.success ? `✅ Added: https://gist.github.com/${gistId}` : `❌ ${result.message}`, result.success ? "info" : "error");
+      } finally {
+        ctx.ui.setStatus("ss", undefined);
+      }
     },
   });
 
@@ -115,13 +143,20 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
     handler: async (args: string, ctx) => {
       await ensureClient();
       const name = args.trim();
-      if (name) {
-        const result = await syncEngine!.syncSkill(name);
-        ctx.ui.notify(result.success ? `✅ Synced ${name}` : `❌ ${result.message}`, result.success ? "info" : "error");
-      } else {
-        const results = await syncEngine!.syncAll();
-        const ok = results.filter(r => r.success).length;
-        ctx.ui.notify(`${ok}/${results.length} synced`, "info");
+      ctx.ui.setStatus("ss", ctx.ui.theme.fg("accent", "🔄 syncing"));
+      try {
+        if (name) {
+          const result = await syncEngine!.syncSkill(name);
+          invalidateSources();
+          ctx.ui.notify(result.success ? `✅ Synced ${name}` : `❌ ${result.message}`, result.success ? "info" : "error");
+        } else {
+          const results = await syncEngine!.syncAll();
+          const ok = results.filter(r => r.success).length;
+          invalidateSources();
+          ctx.ui.notify(`${ok}/${results.length} synced`, "info");
+        }
+      } finally {
+        ctx.ui.setStatus("ss", undefined);
       }
     },
   });
@@ -144,11 +179,17 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
       }
 
       ctx.ui.notify(`🔄 Pushing "${name}" to Gist...`, "info");
-      const result = await syncEngine!.pushSkill(name);
-      ctx.ui.notify(
-        result.success ? `✅ Pushed ${name}` : `❌ ${result.message}`,
-        result.success ? "info" : "error"
-      );
+      ctx.ui.setStatus("ss", ctx.ui.theme.fg("accent", "🔄 pushing"));
+      try {
+        const result = await syncEngine!.pushSkill(name);
+        invalidateSources();
+        ctx.ui.notify(
+          result.success ? `✅ Pushed ${name}` : `❌ ${result.message}`,
+          result.success ? "info" : "error"
+        );
+      } finally {
+        ctx.ui.setStatus("ss", undefined);
+      }
     },
   });
 
@@ -158,24 +199,18 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
     handler: async (_args: string, ctx) => {
       try {
         const config = await ConfigManager.load();
-        const lines: string[] = [];
-        lines.push(`Token: ${config.skillSync?.githubToken ? "✅" : "❌"}`);
-        lines.push(`Index: ${config.skillSync?.indexGistId ? "https://gist.github.com/" + config.skillSync.indexGistId : "❌"}`);
-        lines.push(`Auto-Sync: ${config.skillSync?.autoSync ?? true ? "✅" : "❌"}`);
-        lines.push("");
-        
         const sources = await storage.listSources();
-        if (sources.length === 0) {
-          lines.push("No skills. Use /ss:add or /ss:import");
-        } else {
-          lines.push(`Skills (${sources.length}):`);
-          for (const s of sources) {
-            lines.push(`• ${s.name} @ ${s.lastSync ? timeAgo(new Date(s.lastSync)) : "never"}`);
-            lines.push(`  https://gist.github.com/${s.gistId}`);
-          }
-        }
-        
-        ctx.ui.notify(lines.join("\n"), "info");
+        pi.appendEntry<SkillListDetails>("ss:list", {
+          hasToken: Boolean(config.skillSync?.githubToken),
+          indexGistId: config.skillSync?.indexGistId,
+          autoSync: config.skillSync?.autoSync ?? true,
+          sources: sources.map((s) => ({
+            name: s.name,
+            gistId: s.gistId,
+            localPath: s.localPath,
+            lastSync: s.lastSync,
+          })),
+        });
       } catch {
         ctx.ui.notify("❌ Run /ss:setup first", "error");
       }
@@ -225,6 +260,7 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
 
       // Remove from sync list (and optionally delete local files)
       await syncEngine!.removeSkill(name, keepLocal);
+      invalidateSources();
       ctx.ui.notify(`✅ Removed "${name}" from sync list`, "info");
     },
   });
@@ -284,14 +320,26 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
 
       ctx.ui.notify("🔄 Creating Gist...", "info");
       const gh = await ensureClient();
+      ctx.ui.setStatus("ss", ctx.ui.theme.fg("accent", "🔄 importing"));
       try {
         const gist = await gh.createGist({ description: `skill-${name}`, public: false, files });
         await syncEngine!.addSkillFromGist(gist.id, name);
+        invalidateSources();
         ctx.ui.notify(`✅ Imported! https://gist.github.com/${gist.id}`, "info");
       } catch (error) {
         ctx.ui.notify(`❌ Import failed: ${error instanceof Error ? error.message : String(error)}`, "error");
+      } finally {
+        ctx.ui.setStatus("ss", undefined);
       }
     },
+  });
+
+  // Autocomplete synced skill names: `#name` at the start of a prompt → `/skill:name`
+  pi.on("session_start", (_event, ctx) => {
+    if (ctx.mode !== "tui") return;
+    ctx.ui.addAutocompleteProvider((current) =>
+      createSkillAutocompleteProvider(current, getSources)
+    );
   });
 
   // Auto-sync on startup
@@ -301,7 +349,7 @@ export default function piSkillsSyncExtension(pi: ExtensionAPI) {
       if (config.skillSync?.autoSync && config.skillSync?.githubToken && config.skillSync?.indexGistId) {
         const gh = new GitHubClient(config.skillSync.githubToken);
         const idx = new IndexManager(gh, config.skillSync.indexGistId);
-        new SyncEngine(gh, storage, idx).syncAll().catch(() => {});
+        new SyncEngine(gh, storage, idx).syncAll().then(() => invalidateSources()).catch(() => {});
       }
     } catch { /* ignore */ }
   });
@@ -314,12 +362,4 @@ function formatConfig(c: SkillSyncSettings): string {
     `Index: ${c.skillSync?.indexGistId ? c.skillSync.indexGistId.slice(0,8) + "..." : "❌ not set"}`,
     `Auto-Sync: ${c.skillSync?.autoSync ?? true ? "on" : "off"}`,
   ].join("\n");
-}
-
-function timeAgo(d: Date): string {
-  const s = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (s < 60) return "now";
-  if (s < 3600) return `${Math.floor(s / 60)}m`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}d`;
 }

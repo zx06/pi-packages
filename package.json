@@ -10,15 +10,16 @@
     "publish:tavily-tools": "npm publish --workspace pi-tavily-tools --access public",
     "test:tavily-tools": "tsx --test packages/tavily-tools/test/**/*.test.ts",
     "test:plan": "tsx --test packages/plan/test/**/*.test.ts",
+    "test:skills-sync": "tsx --test packages/pi-skills-sync/test/**/*.test.ts",
     "pack:workspace": "node scripts/workspace-run.mjs pack",
     "publish:workspace": "node scripts/workspace-run.mjs publish",
     "tag:workspace": "node scripts/tag-workspace.mjs"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
-    "protobufjs": "^8.0.1",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.3",
-    "uuid": "^14.0.0"
+    "@types/node": "^26.6.5",
+    "protobufjs": "^8.8.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "uuid": "^14.0.3"
   }
 }

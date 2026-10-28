@@ -1,5 +1,4 @@
-import { StringEnum } from "@mariozechner/pi-ai";
-import { Type } from "typebox";
+import { StringEnum, Type } from "@earendil-works/pi-ai";
 
 export const TavilySearchParams = Type.Object({
 	query: Type.String({ description: "Search query or question" }),

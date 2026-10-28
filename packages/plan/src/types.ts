@@ -14,3 +14,8 @@ export interface PlanState {
   mode: PlanMode;
   steps: PlanStep[];
 }
+
+/** Structured details attached to pi-plan custom messages for TUI rendering. */
+export interface PlanMessageDetails {
+  steps: PlanStep[];
+}

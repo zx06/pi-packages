@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { registerCrawlTool } from "./tavily-search/register-crawl-tool.js";
 import { registerExtractTool } from "./tavily-search/register-extract-tool.js";
 import { registerSearchTool } from "./tavily-search/register-search-tool.js";

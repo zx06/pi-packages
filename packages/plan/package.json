@@ -1,7 +1,7 @@
 {
   "name": "pi-plan",
-  "version": "0.1.1",
-  "description": "Plan mode for pi — read-only exploration with plan-then-execute workflow",
+  "version": "0.2.0",
+  "description": "Plan mode for pi \u2014 read-only exploration with plan-then-execute workflow",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zx06/pi-packages.git",
@@ -29,8 +29,8 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "@mariozechner/pi-ai": "^0.70.2",
-    "@mariozechner/pi-coding-agent": "^0.70.2"
+    "@earendil-works/pi-ai": "^1.4.0",
+    "@earendil-works/pi-coding-agent": "^1.4.0"
   },
   "pi": {
     "extensions": [

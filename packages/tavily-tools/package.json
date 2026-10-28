@@ -1,6 +1,6 @@
 {
   "name": "pi-tavily-tools",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "Tavily tools and status panel for pi",
   "repository": {
     "type": "git",
@@ -26,10 +26,9 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "@mariozechner/pi-ai": "^0.70.2",
-    "@mariozechner/pi-coding-agent": "^0.70.2",
-    "@mariozechner/pi-tui": "^0.70.2",
-    "typebox": "^1.0.0"
+    "@earendil-works/pi-ai": "^1.4.0",
+    "@earendil-works/pi-coding-agent": "^1.4.0",
+    "@earendil-works/pi-tui": "^1.4.0"
   },
   "pi": {
     "extensions": [

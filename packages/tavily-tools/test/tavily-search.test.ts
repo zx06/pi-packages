@@ -73,6 +73,7 @@ test("buildStatusPanelLines shows configured status and notes", () => {
 	const lines = buildStatusPanelLines({
 		configured: true,
 		apiKeyMasked: "tvly-1234",
+		usageLoading: false,
 		sessionStats: {
 			totalCalls: 2,
 			searchCalls: 1,
@@ -94,4 +95,42 @@ test("buildStatusPanelLines shows configured status and notes", () => {
 	assert.ok(lines.some((line) => line.includes("Tavily Status")));
 	assert.ok(lines.some((line) => line.includes("Recent queries")));
 	assert.ok(lines.some((line) => line.includes("Usage docs:")));
+});
+
+test("buildStructuredContent maps Tavily results", async () => {
+	const { buildStructuredContent } = await import("../extensions/tavily-search/structured.ts");
+
+	const content = buildStructuredContent({
+		query: "latest docs",
+		answer: "answer",
+		response_time: 0.42,
+		results: [
+			{
+				title: "Docs",
+				url: "https://example.com/docs",
+				content: "snippet",
+				raw_content: "full page",
+				score: 0.9,
+				images: ["https://example.com/cover.png"],
+			},
+		],
+		failed_results: [{ url: "https://example.com/missing", error: "timeout" }],
+	});
+
+	assert.deepEqual(content, {
+		query: "latest docs",
+		answer: "answer",
+		responseTime: 0.42,
+		results: [
+			{
+				title: "Docs",
+				url: "https://example.com/docs",
+				content: "snippet",
+				rawContent: "full page",
+				score: 0.9,
+				images: ["https://example.com/cover.png"],
+			},
+		],
+		failedResults: [{ url: "https://example.com/missing", error: "timeout" }],
+	});
 });

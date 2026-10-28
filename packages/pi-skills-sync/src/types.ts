@@ -83,3 +83,16 @@ export interface CreateGistParams {
   public: boolean;
   files: Record<string, { content: string }>;
 }
+
+/** Structured details for the /ss:list transcript card. */
+export interface SkillListDetails {
+  hasToken: boolean;
+  indexGistId?: string;
+  autoSync: boolean;
+  sources: Array<{
+    name: string;
+    gistId: string;
+    localPath: string;
+    lastSync?: string;
+  }>;
+}

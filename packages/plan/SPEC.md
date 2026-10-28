@@ -47,6 +47,29 @@ normal ──/plan──► plan ──"Execute"──► execute ──(all don
 6. On execute: tools restored, progress tracked via `[DONE:n]` markers
 7. When all steps complete: notification, return to normal mode
 
+## Events
+
+| Event | Purpose |
+|-------|---------|
+| `tool_call` | Blocks `write`/`edit` and unsafe `bash`; blocked calls return `terminate: true` |
+| `user_bash` | Applies the same read-only whitelist to user `!` / `!!` commands |
+| `before_agent_start` | Injects plan/execute instructions for user prompts only |
+| `context` | Removes stale plan-mode messages when not in plan mode |
+| `turn_end` | Parses `[DONE:n]` markers and persists progress |
+| `agent_settled` | After retries/compaction/queueing settle: extracts the plan or checks completion |
+| `session_start` | Restores branch-aware state and the `--plan` flag |
+
+`agent_settled` is used instead of `agent_end` because pi documents `agent_end`
+as not being a final-idle signal.
+
+## Rendering
+
+- `registerMessageRenderer` draws plan todo/complete/execute messages as
+  expandable checklist cards with structured `details.steps`.
+- `registerMarkdownTransformer` renders `[DONE:n]` as `` `✓ step n` `` outside
+  fenced code blocks. Raw text still drives progress tracking.
+- The progress widget and status line continue to show live completion.
+
 ## State
 
 State is persisted via `pi.appendEntry("pi-plan", ...)` with branch-aware restoration via `getBranch()`.
@@ -55,7 +78,8 @@ State is persisted via `pi.appendEntry("pi-plan", ...)` with branch-aware restor
 
 ```
 extensions/plan/index.ts  — Extension entry (commands, events, UI)
-src/types.ts              — PlanState, PlanStep, PlanMode
+extensions/plan/render.ts — Checklist message cards + [DONE:n] display transform
+src/types.ts              — PlanState, PlanStep, PlanMode, PlanMessageDetails
 src/safety.ts             — Bash command safety (whitelist/blacklist)
 src/planner.ts            — Extract plan steps from LLM output
 src/progress.ts           — [DONE:n] parsing and completion stats
@@ -66,3 +90,7 @@ src/progress.ts           — [DONE:n] parsing and completion stats
 Allowed: cat, head, tail, grep, rg, fd, find, ls, pwd, tree, echo, wc, sort, diff, jq, sed -n, awk, stat, du, git status/log/diff/show/branch, npm list/outdated, curl, etc.
 
 Blocked: rm, mv, cp, mkdir, chmod, git add/commit/push, npm install, sudo, vim, etc.
+
+## Dependencies
+
+Peer dependencies: `@earendil-works/pi-ai` and `@earendil-works/pi-coding-agent` `^1.4.0`.

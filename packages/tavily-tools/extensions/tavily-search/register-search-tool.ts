@@ -1,9 +1,11 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { postTavily } from "./api.js";
 import { buildSearchPayload } from "./build-payloads.js";
 import { buildToolDetails } from "./build-tool-details.js";
 import { formatSearchResults } from "./formatters.js";
 import { TavilySearchParams } from "./params.js";
+import { TavilyOutputSchema, buildStructuredContent } from "./structured.js";
+import { renderTavilyCall, renderTavilyResult } from "./tool-render.js";
 import { searchToolDescription } from "./tool-descriptions.js";
 import { truncateForModel } from "./utils.js";
 
@@ -18,6 +20,14 @@ export function registerSearchTool(pi: ExtensionAPI): void {
 			"Use read/bash/grep/find for local repository search instead of Tavily.",
 		],
 		parameters: TavilySearchParams,
+		outputSchema: TavilyOutputSchema,
+		constrainedSampling: { type: "json_schema", strict: "prefer" },
+		renderCall(args, theme, context) {
+			return renderTavilyCall("search", args, theme, context);
+		},
+		renderResult(result, options, theme, context) {
+			return renderTavilyResult("search", result, options, theme, context);
+		},
 		async execute(_toolCallId, params, signal) {
 			const payload = buildSearchPayload(params);
 			const data = await postTavily("search", payload, signal);
@@ -35,6 +45,7 @@ export function registerSearchTool(pi: ExtensionAPI): void {
 					includeDomains: payload.include_domains,
 					excludeDomains: payload.exclude_domains,
 				}),
+				structuredContent: buildStructuredContent(data),
 			};
 		},
 	});

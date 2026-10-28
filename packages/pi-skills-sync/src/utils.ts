@@ -18,3 +18,12 @@ export function isFileNotFound(error: unknown): boolean {
     ("code" in error ? (error as NodeJS.ErrnoException).code === "ENOENT" : error.message.includes("ENOENT"))
   );
 }
+
+/** Human-readable relative time for sync timestamps. */
+export function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  return `${Math.floor(seconds / 86400)}d`;
+}

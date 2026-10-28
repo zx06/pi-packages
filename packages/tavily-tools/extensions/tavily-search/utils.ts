@@ -4,7 +4,7 @@ import {
 	formatSize,
 	truncateHead,
 	type TruncationResult,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { TEMP_DIR_PREFIX, KEY_FILE_PATH, MAX_URLS_PER_EXTRACT, TAVILY_DASHBOARD_URL, TAVILY_DOCS_URL } from "./constants.js";
 import type { ApiKeyInfo, TruncatedOutput } from "./types.js";

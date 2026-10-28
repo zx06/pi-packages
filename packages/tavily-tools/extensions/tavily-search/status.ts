@@ -1,12 +1,12 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Box, Key, Text, matchesKey } from "@mariozechner/pi-tui";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Box, Key, Text, matchesKey } from "@earendil-works/pi-tui";
 import { getTavilyUsage } from "./api.js";
 import { buildStatusPanelLines, extractSessionUsageStats } from "./formatters.js";
 import type { TavilyUsageResponse } from "./types.js";
 import { getApiKeyGuidance, getApiKeyInfo } from "./utils.js";
 
 async function showStatusPanel(
-	ctx: any,
+	ctx: ExtensionContext,
 	state: {
 		configured: boolean;
 		apiKeySource?: string;
@@ -17,7 +17,7 @@ async function showStatusPanel(
 		sessionStats: ReturnType<typeof extractSessionUsageStats>;
 		guidance?: string;
 	},
-	tuiRef: { requestRender(): void; invalidate(): void } | null,
+	tuiRef: { requestRender(): void; invalidate(): void } | null = null,
 ): Promise<void> {
 	if (!ctx.hasUI) {
 		ctx.ui.notify(
@@ -65,7 +65,6 @@ async function showStatusPanel(
 		overlayOptions: {
 			width: "46%",
 			minWidth: 56,
-			maxWidth: 80,
 			maxHeight: "85%",
 			anchor: "center",
 			margin: 3,
@@ -73,7 +72,7 @@ async function showStatusPanel(
 	});
 }
 
-export async function showStatus(_pi: ExtensionAPI, ctx: any): Promise<void> {
+export async function showStatus(_pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
 	// Wait for agent to finish current work so we can render the UI
 	await ctx.waitForIdle();
 	const apiKeyInfo = getApiKeyInfo();

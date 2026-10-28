@@ -1,9 +1,11 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { postTavily } from "./api.js";
 import { buildCrawlPayload } from "./build-payloads.js";
 import { buildToolDetails } from "./build-tool-details.js";
 import { formatCrawlResults } from "./formatters.js";
 import { TavilyCrawlParams } from "./params.js";
+import { TavilyOutputSchema, buildStructuredContent } from "./structured.js";
+import { renderTavilyCall, renderTavilyResult } from "./tool-render.js";
 import { crawlToolDescription } from "./tool-descriptions.js";
 import { truncateForModel } from "./utils.js";
 
@@ -15,6 +17,14 @@ export function registerCrawlTool(pi: ExtensionAPI): void {
 		promptSnippet: "Crawl related pages from a starting URL using Tavily",
 		promptGuidelines: ["Use this tool when the user wants to explore pages around a site, docs section, or entry URL."],
 		parameters: TavilyCrawlParams,
+		outputSchema: TavilyOutputSchema,
+		constrainedSampling: { type: "json_schema", strict: "prefer" },
+		renderCall(args, theme, context) {
+			return renderTavilyCall("crawl", args, theme, context);
+		},
+		renderResult(result, options, theme, context) {
+			return renderTavilyResult("crawl", result, options, theme, context);
+		},
 		async execute(_toolCallId, params, signal) {
 			const payload = buildCrawlPayload(params);
 			const data = await postTavily("crawl", payload, signal);
@@ -34,6 +44,7 @@ export function registerCrawlTool(pi: ExtensionAPI): void {
 					extractDepth: payload.extract_depth,
 					includeImages: payload.include_images,
 				}),
+				structuredContent: buildStructuredContent(data),
 			};
 		},
 	});

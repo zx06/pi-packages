@@ -22,6 +22,8 @@ Generic monorepo helpers:
 
 ```bash
 npm run test:tavily-tools
+npm run test:plan
+npm run test:skills-sync
 npm run pack:workspace -- --name=pi-tavily-tools
 npm run publish:workspace -- --name=pi-tavily-tools
 npm run tag:workspace -- --name=pi-tavily-tools

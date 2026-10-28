@@ -28,8 +28,12 @@ pi --plan
 2. Ask the agent to analyze your code and create a plan
 3. The agent outputs a numbered `Plan:` section
 4. Choose to **Execute**, **Stay** in plan mode, or **Refine**
-5. During execution, progress is tracked via `[DONE:n]` markers
+5. During execution, progress is tracked via `[DONE:n]` markers (rendered as `✓ step n`)
 6. Widget shows completion status in real time
+7. Plan messages render as expandable checklist cards
+
+Completion is detected after the agent fully settles, so retries, compaction,
+and queued follow-ups do not trigger a premature "plan complete" prompt.
 
 ### Commands
 
@@ -42,6 +46,7 @@ pi --plan
 
 - **Tools**: Only `read`, `bash`, `grep`, `find`, `ls` are available
 - **Bash**: Only read-only commands (cat, grep, git status, etc.)
+- **User shell**: `!` / `!!` commands are checked against the same whitelist
 - **Blocked**: File modifications, git writes, package installs, sudo, editors
 
 ## License

@@ -17,14 +17,15 @@
 import type {
   ExtensionAPI,
   ExtensionContext,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import { checkCommand } from "../../src/safety.js";
 import { extractPlanSteps } from "../../src/planner.js";
 import {
   markCompletedSteps,
   getCompletionStats,
 } from "../../src/progress.js";
-import type { PlanStep, PlanMode, PlanState } from "../../src/types.js";
+import type { PlanStep, PlanMode, PlanState, PlanMessageDetails } from "../../src/types.js";
+import { renderPlanMessage, transformDoneMarkers } from "./render.js";
 
 const PLAN_MODE_TOOLS = ["read", "bash", "grep", "find", "ls"];
 const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
@@ -49,7 +50,7 @@ export default function piPlanExtension(pi: ExtensionAPI): void {
       const lines = steps.map((item) =>
         item.completed
           ? ctx.ui.theme.fg("success", "☑ ") +
-            ctx.ui.theme.muted(ctx.ui.theme.strikethrough(item.text))
+            ctx.ui.theme.fg("muted", ctx.ui.theme.strikethrough(item.text))
           : `${ctx.ui.theme.fg("muted", "☐ ")}${item.text}`
       );
       ctx.ui.setWidget("pi-plan-todos", lines);
@@ -78,6 +79,32 @@ export default function piPlanExtension(pi: ExtensionAPI): void {
     }
     persistState();
     updateUI(ctx);
+  }
+
+  function getLastAssistantText(ctx: ExtensionContext): string | undefined {
+    const branch = ctx.sessionManager.getBranch() as Array<{
+      type: string;
+      message?: { role?: string; content?: unknown };
+    }>;
+
+    for (let i = branch.length - 1; i >= 0; i--) {
+      const entry = branch[i];
+      if (entry.type !== "message") continue;
+      const message = entry.message;
+      if (message?.role !== "assistant" || !Array.isArray(message.content)) continue;
+
+      const text = (message.content as Array<{ type?: string; text?: string }>)
+        .filter(
+          (item): item is { type: "text"; text: string } =>
+            item.type === "text" && typeof item.text === "string"
+        )
+        .map((item) => item.text)
+        .join("\n");
+
+      return text;
+    }
+
+    return undefined;
   }
 
   // --- CLI flag ---
@@ -125,6 +152,7 @@ export default function piPlanExtension(pi: ExtensionAPI): void {
     if (event.toolName === "write" || event.toolName === "edit") {
       return {
         block: true,
+        terminate: true,
         reason: "Plan mode active. File modifications blocked. Use /plan to disable.",
       };
     }
@@ -134,9 +162,31 @@ export default function piPlanExtension(pi: ExtensionAPI): void {
       const command = event.input.command as string;
       const result = checkCommand(command);
       if (!result.safe) {
-        return { block: true, reason: result.reason };
+        return { block: true, terminate: true, reason: result.reason };
       }
     }
+  });
+
+  // --- User ! / !! command filter ---
+
+  pi.on("user_bash", async (event, ctx) => {
+    if (planMode !== "plan") return;
+
+    const result = checkCommand(event.command);
+    if (result.safe) return;
+
+    if (ctx.hasUI) {
+      ctx.ui.notify(`Plan mode blocked: ${result.reason}`, "warning");
+    }
+
+    return {
+      result: {
+        output: `Blocked by pi-plan: ${result.reason}`,
+        exitCode: 1,
+        cancelled: false,
+        truncated: false,
+      },
+    };
   });
 
   // --- Context filter: remove stale pi-plan messages when not in plan mode ---
@@ -165,7 +215,11 @@ export default function piPlanExtension(pi: ExtensionAPI): void {
 
   // --- System prompt injection ---
 
-  pi.on("before_agent_start", async () => {
+  pi.on("before_agent_start", async (event) => {
+    // Pi 1.2+ also fires this for extension-triggered runs. Keep the original
+    // user-prompt behavior and avoid double-injecting plan context on execute.
+    if (event.messageType !== "user") return;
+
     if (planMode === "plan") {
       return {
         message: {
@@ -231,9 +285,12 @@ After completing a step, include a [DONE:n] tag in your response.`,
     }
   });
 
-  // --- After agent finishes: extract plan or check completion ---
+  // --- After the agent has fully settled: extract plan or check completion ---
 
-  pi.on("agent_end", async (event, ctx) => {
+  pi.on("agent_settled", async (event, ctx) => {
+    // Do not prompt after the user aborted the run
+    if (event.aborted) return;
+
     // Check if execution is complete
     if (planMode === "execute" && steps.length > 0) {
       const { allDone } = getCompletionStats(steps);
@@ -244,6 +301,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
             customType: "pi-plan-complete",
             content: `**Plan Complete!** ✓\n\n${completedList}`,
             display: true,
+            details: { steps: steps.map((s) => ({ ...s })) } satisfies PlanMessageDetails,
           },
           { triggerTurn: false }
         );
@@ -258,20 +316,9 @@ After completing a step, include a [DONE:n] tag in your response.`,
 
     if (planMode !== "plan" || !ctx.hasUI) return;
 
-    // Extract todos from last assistant message
-    const messages = event.messages as Array<{
-      role: string;
-      content?: unknown;
-    }>;
-    const lastAssistant = [...messages].reverse().find(
-      (m) => m.role === "assistant" && Array.isArray(m.content)
-    ) as { role: string; content: Array<{ type: string; text?: string }> } | undefined;
-
-    if (lastAssistant) {
-      const text = lastAssistant.content
-        .filter((c): c is { type: "text"; text: string } => c.type === "text")
-        .map((c) => c.text)
-        .join("\n");
+    // Extract todos from the last assistant message on the current branch
+    const text = getLastAssistantText(ctx);
+    if (text) {
       const extracted = extractPlanSteps(text);
       if (extracted.length > 0) {
         steps = extracted;
@@ -287,6 +334,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
           customType: "pi-plan-todo-list",
           content: `**Plan Steps (${steps.length}):**\n\n${list}`,
           display: true,
+          details: { steps: steps.map((s) => ({ ...s })) } satisfies PlanMessageDetails,
         },
         { triggerTurn: false }
       );
@@ -309,7 +357,14 @@ After completing a step, include a [DONE:n] tag in your response.`,
           ? `Execute the plan. Start with: ${steps[0].text}`
           : "Execute the plan you just created.";
       pi.sendMessage(
-        { customType: "pi-plan-execute", content: execMsg, display: true },
+        {
+          customType: "pi-plan-execute",
+          content: execMsg,
+          display: true,
+          details: {
+            steps: steps.filter((s) => !s.completed).map((s) => ({ ...s })),
+          } satisfies PlanMessageDetails,
+        },
         { triggerTurn: true }
       );
     } else if (choice === "Refine the plan") {
@@ -318,6 +373,29 @@ After completing a step, include a [DONE:n] tag in your response.`,
         pi.sendUserMessage(refinement.trim());
       }
     }
+  });
+
+  // --- Message cards + [DONE:n] rendering ---
+
+  pi.registerMessageRenderer<PlanMessageDetails>(
+    "pi-plan-todo-list",
+    (message, options, theme) =>
+      renderPlanMessage("todo", message.content, message.details, options, theme)
+  );
+  pi.registerMessageRenderer<PlanMessageDetails>(
+    "pi-plan-complete",
+    (message, options, theme) =>
+      renderPlanMessage("complete", message.content, message.details, options, theme)
+  );
+  pi.registerMessageRenderer<PlanMessageDetails>(
+    "pi-plan-execute",
+    (message, options, theme) =>
+      renderPlanMessage("execute", message.content, message.details, options, theme)
+  );
+
+  pi.registerMarkdownTransformer((markdown, context) => {
+    if (context.messageType !== "assistant") return markdown;
+    return transformDoneMarkers(markdown);
   });
 
   // --- Restore state on session start/resume ---

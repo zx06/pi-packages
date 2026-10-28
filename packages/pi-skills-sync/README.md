@@ -19,7 +19,17 @@ Manage your pi skills via GitHub Gists. Sync across devices, import local skills
 | `/ss:sync` | Sync all skills or a specific one (pull from Gist) |
 | `/ss:push` | Push local changes of a skill to its Gist |
 | `/ss:remove` | Remove skill from sync list |
-| `/ss:list` | List skills + config status |
+| `/ss:list` | List skills + config status (renders a card, not sent to the model) |
+
+## UX shortcuts
+
+- Type `#` at the **start** of a prompt to complete a synced skill name into
+  `/skill:name` (for example `#pdf` → `/skill:pdf-tools`).
+- `/ss:list` renders an expandable card with token/index status, auto-sync,
+  skill names, Gist URLs, and last sync times. Press `Ctrl+E` to expand.
+- Sync, push, add, and import operations show live footer status.
+
+Requires pi 1.4+ (`@earendil-works/pi-coding-agent`).
 
 ## Quick Start
 

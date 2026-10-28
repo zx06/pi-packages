@@ -7,7 +7,12 @@ Tavily integration for pi.
 - `tavily_search`
 - `tavily_extract`
 - `tavily_crawl`
+- Rich tool cards: query/URLs, result counts, response time, truncation, and expandable details
+- Structured `structuredContent` results for codemode and other programmatic callers
+- Preferred JSON-schema constrained sampling for tool arguments
 - `/tavily:status` status panel
+
+Requires pi 1.4+ (`@earendil-works/pi-coding-agent`).
 
 ## Install
 

@@ -16,6 +16,13 @@ Manage pi skills via GitHub Gists. Store in private Gists, sync across devices.
 | `/ss:remove` | Remove skill from sync list |
 | `/ss:list` | List skills + config status |
 
+## UX
+
+- `#name` at the start of a prompt completes to `/skill:name` for synced skills.
+- `/ss:list` uses `pi.appendEntry("ss:list", details)` plus
+  `pi.registerEntryRenderer` so the card is display-only and never sent to the model.
+- Sync, push, add, and import set a `ss` footer status and clear it in `finally`.
+
 ## Data
 
 - **Config**: `~/.pi/agent/settings.json` (`skillSync` field)
@@ -35,6 +42,8 @@ Manage pi skills via GitHub Gists. Store in private Gists, sync across devices.
 
 ```
 extensions/index.ts      — Commands layer (user-facing)
+extensions/autocomplete.ts — `#skill` autocomplete provider
+extensions/render.ts     — `/ss:list` entry card renderer
        ↓
   src/sync.ts            — Sync engine (orchestration)
        ↓
@@ -48,7 +57,9 @@ storage  github     index-manager
 
 | Layer | File | Responsibility |
 |-------|------|----------------|
-| Commands | `extensions/index.ts` | User interaction, autocomplete, confirm dialogs |
+| Commands | `extensions/index.ts` | User interaction, command autocomplete, confirm dialogs |
+| Autocomplete | `extensions/autocomplete.ts` | `#skill` → `/skill:name` completion |
+| Entry renderer | `extensions/render.ts` | Display-only `/ss:list` card |
 | Sync Engine | `src/sync.ts` | Orchestrate pull/push/add/remove across storage and index |
 | Local Storage | `src/storage.ts` | Read/write `~/.pi/agent/skill-sync.json` |
 | GitHub Client | `src/github.ts` | GitHub Gist REST API wrapper |
@@ -56,7 +67,7 @@ storage  github     index-manager
 | Config | `src/config.ts` | Read/write `~/.pi/agent/settings.json` |
 | Types | `src/types.ts` | Shared TypeScript interfaces |
 | Encoding | `src/encoding.ts` | Path encoding for Gist filename safety |
-| Utils | `src/utils.ts` | Shared helpers (path resolution, error detection) |
+| Utils | `src/utils.ts` | Shared helpers (path resolution, error detection, relative time) |
 
 ## Encoding Scheme
 
@@ -77,3 +88,7 @@ Example:
 ## Gist Naming
 
 Skill Gists use `skill-<name>` as description prefix.
+
+## Dependencies
+
+Peer dependencies: `@earendil-works/pi-coding-agent` and `@earendil-works/pi-tui` `^1.4.0`.
